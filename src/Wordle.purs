@@ -1,12 +1,20 @@
-module Wordle (component, State, Query(..), Message, Action) where
+module Wordle
+  ( Action
+  , Message
+  , Query(..)
+  , State
+  , component
+  , keyboard
+  ) where
 
 import Prelude
 import Data.Array (head)
-import Data.Maybe (Maybe(..))
+import Data.Array as Array
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.String.CodeUnits (toCharArray)
 import Data.String.CodeUnits as String
 import Effect.Aff (Aff)
-import Halogen (ClassName(..), HalogenQ(..), modify_)
+import Halogen (ClassName(..), modify_)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -28,7 +36,7 @@ data Action
 data Message
   = Toggled Boolean
 
-component :: forall q o m. H.Component Query (Array String) Message Aff
+component :: H.Component Query (Array String) Message Aff
 component =
   H.mkComponent
     { initialState
@@ -44,12 +52,7 @@ initialState :: Array String -> State
 initialState words =
   { words
   , inputs:
-      [ "xxxxx"
-      , "xxxxx"
-      , "xxxxx"
-      , "xxxxx"
-      , "xxxxx"
-      ]
+      []
   , input: ""
   , answer:
       case head words of
@@ -57,21 +60,43 @@ initialState words =
         Nothing -> ""
   }
 
+maxTrials :: Int
+maxTrials = 6
+
 render :: forall m. State -> H.ComponentHTML Action () m
 render state =
-  HH.div []
-    [ HH.div
-        [ HP.class_ (ClassName "inputs") ]
-        $ map
-            ( \word ->
-                HH.div [ HP.class_ (ClassName "row") ]
-                  ( map (\c -> HH.div [ HP.class_ (ClassName "cell") ] [ HH.text $ String.singleton c ])
-                      $ toCharArray word
-                  )
-            )
-            state.inputs
-    , HH.div [] [ HH.text state.input ]
-    ]
+  let
+    rows =
+      map
+        ( \word ->
+            HH.div [ HP.class_ (ClassName "row") ]
+              ( map (\c -> HH.div [ HP.class_ (ClassName "cell") ] [ HH.text $ String.singleton c ])
+                  $ toCharArray word
+              )
+        )
+        state.inputs
+
+    inputs =
+      HH.div [ HP.class_ (ClassName "row") ]
+        ( map (\c -> HH.div [ HP.class_ (ClassName "cell") ] [ HH.text $ String.singleton c ])
+            $ toCharArray (take 5 (state.input <> "     "))
+        )
+
+    empty =
+      HH.div [ HP.class_ (ClassName "row") ]
+        ( map (\c -> HH.div [ HP.class_ (ClassName "cell") ] [ HH.text $ String.singleton c ])
+            $ toCharArray "     "
+        )
+
+    concat = Array.slice 0 maxTrials (rows <> [ inputs ] <> Array.replicate 5 empty)
+  in
+    HH.div [ HP.class_ (ClassName "root") ]
+      [ HH.h1 [] [ HH.text "Wordle Extreme" ]
+      , HH.div
+          [ HP.class_ (ClassName "inputs") ]
+          concat
+      , HH.div [] [ HH.text state.answer ]
+      ]
 
 handleAction :: forall o m. Action -> H.HalogenM State Action () o m Unit
 handleAction = case _ of
@@ -80,9 +105,28 @@ handleAction = case _ of
 handleQuery :: forall m a. Query a -> H.HalogenM State Action () Message m (Maybe a)
 handleQuery = case _ of
   WindowKeyDown key a -> do
-    modify_ (\state -> state { input = state.input <> key })
+    modify_
+      ( \state -> case key of
+          "Enter" ->
+            if String.length state.input == 5 then
+              state
+                { inputs = state.inputs <> [ state.input ]
+                , input = ""
+                }
+            else
+              state
+          "Backspace" -> state { input = snoc state.input }
+          _ -> state { input = take 5 (state.input <> key) }
+      )
     pure (Just a)
 
+snoc :: String -> String
+snoc s = fromMaybe s $ String.slice 0 (negate 1) s
+
+take :: Int -> String -> String
+take n s = fromMaybe s $ String.slice 0 n s
+
+keyboard :: Array (Array String)
 keyboard =
   [ [ "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P" ]
   , [ "A", "S", "D", "F", "G", "H", "J", "K", "L" ]
