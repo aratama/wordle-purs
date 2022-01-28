@@ -35,3 +35,15 @@ html, body {
     line-height: 40px;
     text-align: center;
 }
+
+.Correct {
+    background-color: rgb(41, 80, 2);
+}
+
+.Wrong {
+    background-color: rgb(39, 39, 39);
+}
+
+.Partial {
+    background-color: rgb(77, 77, 1);    
+}

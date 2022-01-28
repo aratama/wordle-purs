@@ -8,11 +8,13 @@ module Wordle
   ) where
 
 import Prelude
-import Data.Array (head)
+import Data.Array (head, mapWithIndex)
 import Data.Array as Array
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.String (Pattern(..))
 import Data.String.CodeUnits (toCharArray)
 import Data.String.CodeUnits as String
+import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Halogen (ClassName(..), modify_)
 import Halogen as H
@@ -27,6 +29,9 @@ type State
     , input :: String
     }
 
+type Params
+  = { words :: Array String, answer :: String }
+
 data Query a
   = WindowKeyDown String a
 
@@ -36,7 +41,7 @@ data Action
 data Message
   = Toggled Boolean
 
-component :: H.Component Query (Array String) Message Aff
+component :: H.Component Query Params Message Aff
 component =
   H.mkComponent
     { initialState
@@ -48,16 +53,13 @@ component =
               }
     }
 
-initialState :: Array String -> State
-initialState words =
-  { words
+initialState :: Params -> State
+initialState params =
+  { words: params.words
   , inputs:
       []
   , input: ""
-  , answer:
-      case head words of
-        Just x -> x
-        Nothing -> ""
+  , answer: params.answer
   }
 
 maxTrials :: Int
@@ -70,8 +72,17 @@ render state =
       map
         ( \word ->
             HH.div [ HP.class_ (ClassName "row") ]
-              ( map (\c -> HH.div [ HP.class_ (ClassName "cell") ] [ HH.text $ String.singleton c ])
-                  $ toCharArray word
+              ( map
+                  ( \(Tuple c result) ->
+                      HH.div
+                        [ HP.classes
+                            [ ClassName "cell"
+                            , ClassName $ resultToString result
+                            ]
+                        ]
+                        [ HH.text c ]
+                  )
+                  $ validate state.answer word
               )
         )
         state.inputs
@@ -125,6 +136,31 @@ snoc s = fromMaybe s $ String.slice 0 (negate 1) s
 
 take :: Int -> String -> String
 take n s = fromMaybe s $ String.slice 0 n s
+
+data Result
+  = Wrong
+  | Correct
+  | Partial
+
+resultToString :: Result -> String
+resultToString = case _ of
+  Wrong -> "Wrong"
+  Correct -> "Correct"
+  Partial -> "Partial"
+
+validate :: String -> String -> Array (Tuple String Result)
+validate answer input =
+  mapWithIndex
+    ( \i c ->
+        let
+          s = String.singleton c
+        in
+          Tuple s
+            $ if String.charAt i answer == Just c then
+                Correct
+              else if String.contains (Pattern s) answer then Partial else Wrong
+    )
+    (toCharArray input)
 
 keyboard :: Array (Array String)
 keyboard =

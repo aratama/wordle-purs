@@ -5,15 +5,17 @@ module Main
 import Prelude
 import Affjax as AX
 import Affjax.ResponseFormat as ResponseFormat
+import Data.Array as Array
 import Data.Either (Either(..))
 import Data.HTTP.Method (Method(..))
 import Data.Maybe (Maybe(..))
+import Data.Maybe as Maybe
 import Data.String (Pattern(..), split)
 import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
-import Wordle as Wordle
+import Effect.Random (randomInt)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
@@ -23,6 +25,7 @@ import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML (window)
 import Web.HTML.Window (toEventTarget)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent, fromEvent, key)
+import Wordle as Wordle
 
 main :: Effect Unit
 main =
@@ -35,7 +38,10 @@ main =
       Right response -> do
         pure $ split (Pattern "\n") response.body
     body <- HA.awaitBody
-    io <- runUI Wordle.component words body
+    answerIndex <- liftEffect $ randomInt 0 (Array.length words)
+    let
+      answer = Maybe.fromMaybe "xxxxx" $ Array.index words answerIndex
+    io <- runUI Wordle.component { words, answer } body
     liftEffect do
       win <- window
       listener <-
