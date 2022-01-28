@@ -1,0 +1,21 @@
+{
+  "name": "wordle-purs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "spago bundle-app --to output/index.js",
+    "dev": "parcel public/index.html",
+    "preprocess": "spago script -d aff -d node-buffer -d node-fs-aff -d arrays -d strings script/preprocess.purs"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "parcel": "^2.2.1",
+    "purty": "^7.0.0"
+  }
+}
