@@ -21,8 +21,6 @@ to generate this file without the comments in this block.
   , "halogen"
   , "http-methods"
   , "maybe"
-  , "node-buffer"
-  , "node-fs-aff"
   , "prelude"
   , "psci-support"
   , "strings"

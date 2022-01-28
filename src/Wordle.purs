@@ -1,4 +1,4 @@
-module Example.Basic.Button (component, State, Query(..), Message, Action) where
+module Wordle (component, State, Query(..), Message, Action) where
 
 import Prelude
 import Data.Array (head)

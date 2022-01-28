@@ -13,7 +13,7 @@ import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
-import Example.Basic.Button as Button
+import Wordle as Wordle
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
@@ -35,7 +35,7 @@ main =
       Right response -> do
         pure $ split (Pattern "\n") response.body
     body <- HA.awaitBody
-    io <- runUI Button.component words body
+    io <- runUI Wordle.component words body
     liftEffect do
       win <- window
       listener <-
@@ -46,11 +46,8 @@ main =
                 launchAff_ do
                   let
                     k = key keyboardEvent
-                  _ <- io.query $ H.mkTell $ Button.WindowKeyDown k
+                  _ <- io.query $ H.mkTell $ Wordle.WindowKeyDown k
                   log k
                   pure unit
           )
       addEventListener (EventType "keydown") listener false (toEventTarget win)
-
--- type KeyboardEvent
---   = { key :: String }
