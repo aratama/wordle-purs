@@ -10,6 +10,14 @@ import Data.String.CodeUnits as String
 import Data.Tuple (Tuple(..))
 import Wordle.Grade (Result(..))
 
+type Game a
+  = { words :: Array String
+    , inputs :: Array String
+    , answer :: String
+    , input :: String
+    | a
+    }
+
 validateWord :: String -> String -> Boolean
 validateWord answer input =
   Array.all (\(Tuple _ r) -> r == Correct)
