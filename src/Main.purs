@@ -12,20 +12,19 @@ import Data.Maybe (Maybe(..))
 import Data.Maybe as Maybe
 import Data.String (Pattern(..), split, toUpper)
 import Effect (Effect)
-import Effect.Aff (launchAff, launchAff_)
+import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
 import Effect.Random (randomInt)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
-import Unsafe.Coerce (unsafeCoerce)
 import Web.Event.Event (EventType(..))
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML (window)
 import Web.HTML.Window (toEventTarget)
-import Web.UIEvent.KeyboardEvent (KeyboardEvent, fromEvent, key)
-import Wordle as Wordle
+import Web.UIEvent.KeyboardEvent (fromEvent, key)
+import Wordle.UI as Wordle
 
 main :: Effect Unit
 main =

@@ -1,19 +1,15 @@
-module Wordle
+module Wordle.UI
   ( Action
   , Message
   , Query(..)
   , State
   , component
-  , keyboardKeys
-  , validate
-  , Result(..)
   ) where
 
 import Prelude
 import Control.Monad.State (class MonadState)
-import Data.Array (head, mapWithIndex)
 import Data.Array as Array
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), toUpper)
 import Data.String.CodeUnits (toCharArray)
 import Data.String.CodeUnits as String
@@ -22,8 +18,11 @@ import Effect.Aff (Aff)
 import Halogen (ClassName(..), modify_)
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Wordle.Game (validate, validateWord)
+import Wordle.Grade (resultToString)
+import Wordle.Keyboard as Keyboard
+import Wordle.Util (take, snoc)
 
 type State
   = { words :: Array String
@@ -109,15 +108,6 @@ render state =
         )
 
     concat = Array.slice 0 maxTrials (rows <> [ inputs ] <> Array.replicate 5 empty)
-
-    keyboard =
-      HH.div [ HP.classes [ ClassName "key-rows" ] ]
-        $ map
-            ( \row ->
-                HH.div [ HP.classes [ ClassName "key-row" ] ]
-                  $ map (\key -> HH.button [ HE.onClick $ \_ -> KeyDown key ] [ HH.text key ]) row
-            )
-            keyboardKeys
   in
     HH.div [ HP.class_ (ClassName "root") ]
       [ HH.h1 [] [ HH.text "Wordle Extreme" ]
@@ -125,7 +115,7 @@ render state =
           [ HP.class_ (ClassName "inputs") ]
           concat
       , HH.div [] [ HH.text state.answer ]
-      , keyboard
+      , Keyboard.render KeyDown
       ]
 
 handleAction :: forall o m. Action -> H.HalogenM State Action () o m Unit
@@ -157,48 +147,3 @@ handleKey key =
           else
             state
     )
-
-snoc :: String -> String
-snoc s = fromMaybe s $ String.slice 0 (negate 1) s
-
-take :: Int -> String -> String
-take n s = fromMaybe s $ String.slice 0 n s
-
-data Result
-  = Wrong
-  | Correct
-  | Partial
-
-derive instance eqResult :: Eq Result
-
-resultToString :: Result -> String
-resultToString = case _ of
-  Wrong -> "Wrong"
-  Correct -> "Correct"
-  Partial -> "Partial"
-
-validateWord :: String -> String -> Boolean
-validateWord answer input =
-  Array.all (\(Tuple _ r) -> r == Correct)
-    (validate answer input)
-
-validate :: String -> String -> Array (Tuple String Result)
-validate answer input =
-  mapWithIndex
-    ( \i c ->
-        let
-          s = String.singleton c
-        in
-          Tuple s
-            $ if String.charAt i answer == Just c then
-                Correct
-              else if String.contains (Pattern s) answer then Partial else Wrong
-    )
-    (toCharArray input)
-
-keyboardKeys :: Array (Array String)
-keyboardKeys =
-  [ [ "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P" ]
-  , [ "A", "S", "D", "F", "G", "H", "J", "K", "L" ]
-  , [ "Enter", "Z", "X", "C", "V", "B", "N", "M", "Backspace" ]
-  ]
