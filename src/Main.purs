@@ -10,7 +10,7 @@ import Data.Either (Either(..))
 import Data.HTTP.Method (Method(..))
 import Data.Maybe (Maybe(..))
 import Data.Maybe as Maybe
-import Data.String (Pattern(..), split)
+import Data.String (Pattern(..), split, toUpper)
 import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
@@ -36,7 +36,7 @@ main =
         log $ "GET /api response failed to decode: " <> AX.printError err
         pure []
       Right response -> do
-        pure $ split (Pattern "\n") response.body
+        pure $ map toUpper $ split (Pattern "\n") response.body
     body <- HA.awaitBody
     answerIndex <- liftEffect $ randomInt 0 (Array.length words)
     let
