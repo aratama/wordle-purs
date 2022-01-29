@@ -110,7 +110,7 @@ render state =
     concat = Array.slice 0 maxTrials (rows <> [ inputs ] <> Array.replicate 5 empty)
   in
     HH.div [ HP.class_ (ClassName "root") ]
-      [ HH.h1 [] [ HH.text "Wordle Extreme" ]
+      [ HH.h1 [] [ HH.text "Wordle Extreme Hoge" ]
       , HH.div
           [ HP.class_ (ClassName "inputs") ]
           concat
