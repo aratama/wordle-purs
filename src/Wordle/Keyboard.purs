@@ -8,14 +8,29 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Wordle.Game (getCharGrade)
+import Wordle.Grade (resultToString)
+import Data.Maybe (Maybe(..))
 
-render :: forall action m. (String -> action) -> H.ComponentHTML action () m
-render keyDown =
+render :: forall action m. String -> Array String -> (String -> action) -> H.ComponentHTML action () m
+render answer inputs keyDown =
   HH.div [ HP.classes [ ClassName "key-rows" ] ]
     $ map
         ( \row ->
             HH.div [ HP.classes [ ClassName "key-row" ] ]
-              $ map (\key -> HH.button [ HE.onClick $ \_ -> keyDown key ] [ HH.text key ]) row
+              $ map
+                  ( \key ->
+                      HH.button
+                        [ HP.classes
+                            [ case getCharGrade answer inputs key of
+                                Just grade -> ClassName $ resultToString grade
+                                Nothing -> ClassName ""
+                            ]
+                        , HE.onClick $ \_ -> keyDown key
+                        ]
+                        [ HH.text key ]
+                  )
+                  row
         )
         keyboardKeys
 

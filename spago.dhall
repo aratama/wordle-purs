@@ -18,6 +18,7 @@ to generate this file without the comments in this block.
   , "console"
   , "effect"
   , "either"
+  , "free"
   , "halogen"
   , "http-methods"
   , "maybe"

@@ -7,8 +7,6 @@ module Wordle.UI
   ) where
 
 import Prelude
-import Control.Monad.Free (liftF)
-import Control.Monad.State (class MonadState, lift)
 import Data.Array (mapWithIndex)
 import Data.Array as Array
 import Data.Maybe (Maybe(..))
@@ -17,11 +15,9 @@ import Data.String.CodeUnits (toCharArray)
 import Data.String.CodeUnits as String
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff, Milliseconds(..), delay)
-import Effect.Aff.Class (class MonadAff)
-import Halogen (ClassName(..), get, liftAff, liftEffect, modify_, modify)
+import Halogen (ClassName(..), get, modify_)
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Properties (enabled)
 import Halogen.HTML.Properties as HP
 import Wordle.Dialog as Dialog
 import Wordle.Game (validate, validateWord)
@@ -133,12 +129,12 @@ render state =
     concat = Array.slice 0 maxTrials (rows <> [ inputs ] <> Array.replicate 5 empty)
   in
     HH.div [ HP.class_ (ClassName "root") ]
-      [ HH.h1 [] [ HH.text "WORDLE SPEEDRUN" ]
+      [ HH.h1 [] [ HH.text "WORDLE CLONE" ]
       , HH.div
           [ HP.class_ (ClassName "inputs") ]
           concat
       , HH.div [] [ HH.text state.answer ]
-      , Keyboard.render KeyDown
+      , Keyboard.render state.answer state.inputs KeyDown
       , Dialog.render state.dialogVisible state CloseDialog
       ]
 
@@ -174,7 +170,9 @@ handleKey key = case key of
           modify_ \state -> state { dialogVisible = true }
         else do
           modify_ \state -> state { enable = true }
-      else
+      else do
+        modify_ \state -> state { vibration = false }
+        H.liftAff $ delay (Milliseconds 1.0)
         modify_ \state -> state { vibration = true }
     else
       pure unit
