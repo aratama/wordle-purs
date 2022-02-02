@@ -9,7 +9,6 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Wordle.Game (getCharGrade)
-import Wordle.Grade (resultToString)
 import Data.Maybe (Maybe(..))
 
 render :: forall action m. String -> Array String -> (String -> action) -> H.ComponentHTML action () m
@@ -23,7 +22,7 @@ render answer inputs keyDown =
                       HH.button
                         [ HP.classes
                             [ case getCharGrade answer inputs key of
-                                Just grade -> ClassName $ resultToString grade
+                                Just grade -> ClassName $ show grade
                                 Nothing -> ClassName ""
                             ]
                         , HE.onClick $ \_ -> keyDown key

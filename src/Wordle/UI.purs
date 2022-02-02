@@ -7,7 +7,7 @@ module Wordle.UI
   ) where
 
 import Prelude
-import Data.Array (mapWithIndex)
+import Data.Array (mapWithIndex, length)
 import Data.Array as Array
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), toUpper)
@@ -19,9 +19,9 @@ import Halogen (ClassName(..), get, modify_)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import Wordle.Dialog as Dialog
-import Wordle.Game (validate, validateWord)
-import Wordle.Grade (resultToString)
+import Wordle.Dialog.Lose as Lose
+import Wordle.Dialog.Win as Win
+import Wordle.Game (nextProblem, validate, validateWord)
 import Wordle.Keyboard as Keyboard
 import Wordle.Util (take, snoc)
 
@@ -31,8 +31,9 @@ type State
     , answer :: String
     , input :: String
     , vibration :: Boolean
-    , dialogVisible :: Boolean
-    , enable :: Boolean
+    , winDialogVisible :: Boolean
+    , loseDialogVisible :: Boolean
+    , active :: Boolean
     }
 
 type Params
@@ -63,13 +64,13 @@ component =
 initialState :: Params -> State
 initialState params =
   { words: params.words
-  , inputs:
-      []
+  , inputs: []
   , input: ""
   , answer: params.answer
   , vibration: false
-  , dialogVisible: false
-  , enable: true
+  , winDialogVisible: false
+  , loseDialogVisible: false
+  , active: true
   }
 
 maxTrials :: Int
@@ -89,7 +90,7 @@ render state =
                       HH.div
                         [ HP.classes
                             [ ClassName "cell"
-                            , ClassName $ resultToString result
+                            , ClassName $ show result
                             , ClassName "open"
                             ]
                         ]
@@ -112,7 +113,7 @@ render state =
                 HH.div
                   [ HP.classes
                       [ ClassName "cell"
-                      , ClassName if state.enable && String.length state.input == i then "active" else ""
+                      , ClassName if state.active && String.length state.input == i then "active" else ""
                       ]
                   ]
                   [ HH.text $ String.singleton c ]
@@ -133,9 +134,10 @@ render state =
       , HH.div
           [ HP.class_ (ClassName "inputs") ]
           concat
-      , HH.div [] [ HH.text state.answer ]
+      -- , HH.div [] [ HH.text state.answer ]
       , Keyboard.render state.answer state.inputs KeyDown
-      , Dialog.render state.dialogVisible state CloseDialog
+      , Win.render state.winDialogVisible state CloseDialog
+      , Lose.render state.loseDialogVisible state CloseDialog
       ]
 
 handleAction :: Action -> H.HalogenM State Action () Message Aff Unit
@@ -143,7 +145,17 @@ handleAction = case _ of
   KeyDown key -> do
     handleKey key
   CloseDialog -> do
-    modify_ \state -> state { dialogVisible = false }
+    state <- get
+    answer <- nextProblem state.words
+    modify_ \s ->
+      s
+        { winDialogVisible = false
+        , loseDialogVisible = false
+        , answer = answer
+        , input = ""
+        , inputs = []
+        , active = true
+        }
 
 handleQuery :: forall a. Query a -> H.HalogenM State Action () Message Aff (Maybe a)
 handleQuery = case _ of
@@ -152,34 +164,41 @@ handleQuery = case _ of
     pure (Just a)
 
 handleKey :: forall output. String -> H.HalogenM State Action () output Aff Unit
-handleKey key = case key of
-  "Enter" -> do
-    current <- get
-    if String.length current.input == 5 then
-      if Array.elem current.input current.words then do
-        modify_ \state ->
-          state
-            { inputs = state.inputs <> [ state.input ]
-            , input = ""
-            , vibration = false
-            , enable = false
-            }
-        H.liftAff $ delay (Milliseconds 1500.0)
-        if validateWord current.answer current.input then do
-          H.liftAff $ delay (Milliseconds 1000.0)
-          modify_ \state -> state { dialogVisible = true }
+handleKey key = do
+  s <- get
+  if s.active then case key of
+    "Enter" -> do
+      current <- get
+      if String.length current.input == 5 then
+        if Array.elem current.input current.words then do
+          modify_ \state ->
+            state
+              { inputs = state.inputs <> [ state.input ]
+              , input = ""
+              , vibration = false
+              , active = false
+              }
+          H.liftAff $ delay (Milliseconds 1500.0)
+          s <- get
+          if validateWord current.answer current.input then do
+            H.liftAff $ delay (Milliseconds 1000.0)
+            modify_ \state -> state { winDialogVisible = true }
+          else if length s.inputs == 6 then do
+            modify_ \state -> state { loseDialogVisible = true }
+          else do
+            modify_ \state -> state { active = true }
         else do
-          modify_ \state -> state { enable = true }
-      else do
-        modify_ \state -> state { vibration = false }
-        H.liftAff $ delay (Milliseconds 1.0)
-        modify_ \state -> state { vibration = true }
-    else
-      pure unit
-  "Backspace" -> modify_ \state -> state { input = snoc state.input, vibration = false }
-  _ ->
-    modify_ \state ->
-      if String.contains (Pattern $ toUpper key) "ABCDEFGHIJKLMNOPQRSTUVWXYZ" then
-        state { input = take 5 (state.input <> toUpper key), vibration = false }
+          modify_ \state -> state { vibration = false }
+          H.liftAff $ delay (Milliseconds 1.0)
+          modify_ \state -> state { vibration = true }
       else
-        state
+        pure unit
+    "Backspace" -> modify_ \state -> state { input = snoc state.input, vibration = false }
+    _ ->
+      modify_ \state ->
+        if String.contains (Pattern $ toUpper key) "ABCDEFGHIJKLMNOPQRSTUVWXYZ" then
+          state { input = take 5 (state.input <> toUpper key), vibration = false }
+        else
+          state
+  else
+    pure unit
