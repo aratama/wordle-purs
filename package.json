@@ -7,8 +7,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "spago bundle-app --to output/index.js && parcel build public/index.html",
-    "dev": "concurrently \"parcel public/index.html\" \"spago bundle-app --to output/index.js --watch\"",
+    "build": "spago bundle-app --to output/index.js && vite build",
+    "dev": "concurrently \"vite\" \"spago bundle-app --to output/index.js --watch\"",
     "preprocess": "spago script -d aff -d node-buffer -d node-fs-aff -d arrays -d strings script/preprocess.purs"
   },
   "author": "",
@@ -19,9 +19,7 @@
     "parcel-reporter-static-files-copy": "^1.3.4",
     "purescript": "^0.14.5",
     "purty": "^7.0.0",
-    "spago": "^0.20.4"
-  },
-  "alias": {
-    "xhr2": false
+    "spago": "^0.20.4",
+    "vite": "^2.7.13"
   }
 }

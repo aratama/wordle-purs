@@ -1,12 +1,7 @@
-module Main
-  ( main
-  ) where
+module Main where
 
 import Prelude
-import Affjax as AX
-import Affjax.ResponseFormat as ResponseFormat
 import Data.Either (Either(..))
-import Data.HTTP.Method (Method(..))
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), split, toUpper)
 import Effect (Effect)
@@ -23,32 +18,33 @@ import Web.HTML.Window (toEventTarget)
 import Web.UIEvent.KeyboardEvent (fromEvent, key)
 import Wordle.Game (nextProblem)
 import Wordle.UI as Wordle
+import Wordle.Fetch (fetch)
 
 main :: Effect Unit
 main =
   HA.runHalogenAff do
-    result <- AX.request (AX.defaultRequest { url = "/words5.txt", method = Left GET, responseFormat = ResponseFormat.string })
-    words <- case result of
-      Left err -> do
-        log $ "GET /api response failed to decode: " <> AX.printError err
-        pure []
-      Right response -> do
-        pure $ map toUpper $ split (Pattern "\n") response.body
     body <- HA.awaitBody
-    answer <- nextProblem words
-    io <- runUI Wordle.component { words, answer } body
-    liftEffect do
-      win <- window
-      listener <-
-        eventListener
-          ( \e -> case fromEvent e of
-              Nothing -> pure unit
-              Just keyboardEvent ->
-                launchAff_ do
-                  let
-                    k = key keyboardEvent
-                  _ <- io.query $ H.mkTell $ Wordle.WindowKeyDown k
-                  log k
-                  pure unit
-          )
-      addEventListener (EventType "keydown") listener false (toEventTarget win)
+    result <- fetch "words5.txt"
+    case result of
+      Left err -> do
+        log $ "fetch failed: " <> err
+      Right text -> do
+        let
+          words = map toUpper $ split (Pattern "\n") text
+        answer <- nextProblem words
+        io <- runUI Wordle.component { words, answer } body
+        liftEffect do
+          win <- window
+          listener <-
+            eventListener
+              ( \e -> case fromEvent e of
+                  Nothing -> pure unit
+                  Just keyboardEvent ->
+                    launchAff_ do
+                      let
+                        k = key keyboardEvent
+                      _ <- io.query $ H.mkTell $ Wordle.WindowKeyDown k
+                      log k
+                      pure unit
+              )
+          addEventListener (EventType "keydown") listener false (toEventTarget win)
